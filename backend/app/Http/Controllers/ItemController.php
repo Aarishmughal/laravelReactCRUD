@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Item;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class ItemController extends Controller
 {
@@ -25,10 +26,17 @@ class ItemController extends Controller
             "name" => "required|string|max:255",
             "price" => "required|numeric",
             "quantity" => "required|integer",
+            "image" => "nullable|image|mimes:jpeg,png,pneg,gif,svg|max:5120"
         ]);
+
+        if ($request->hasFile('image')) {
+            $imagePath = $request->file('image')->store('images', 'public');
+            $validatedData['image'] = $imagePath;
+        }
+
         $item = Item::create($validatedData);
 
-        return response()->json($item,201);
+        return response()->json($item, 201);
     }
 
     /**
@@ -49,11 +57,26 @@ class ItemController extends Controller
             "name" => "required|string|max:255",
             "price" => "required|numeric",
             "quantity" => "required|integer",
+            "image" => "nullable|image|mimes:jpeg,png,jpg,gif,svg|max:5120", // Adjust mimes and max size as needed
         ]);
+
         $item = Item::findOrFail($id);
+
+        if ($request->hasFile('image')) {
+            // Delete the old image if it exists
+            if ($item->image) {
+                Storage::disk('public')->delete($item->image);
+            }
+
+            $imagePath = $request->file('image')->store('images', 'public');
+            $validatedData['image'] = $imagePath;
+        }
+
         $item->update($validatedData);
-        return response()->json($item,200);
+
+        return response()->json($item, 200);
     }
+
 
     /**
      * Remove the specified resource from storage.
@@ -62,6 +85,6 @@ class ItemController extends Controller
     {
         $item = Item::findOrFail($id);
         $item->delete();
-        return response()->json(null,204);
+        return response()->json(null, 204);
     }
 }
